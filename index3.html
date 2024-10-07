@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Matrix Control</title>
+    <p>LED Matrix Control</p>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #a3bad7;
+            font-family: Arial, sans-serif;
+        }
+
+        .color_palette {
+            display: flex;
+            justify-content: center;
+            margin: 10px;
+        }
+
+        .color {
+            width: 30px;
+            height: 30px;
+            margin: 5px;
+            cursor: pointer;
+            border: 1px solid #000;
+        }
+
+        p {
+            font-size: 20px;
+            margin: 0 auto;
+            margin-top: 15px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(16, 30px);
+            grid-template-rows: repeat(16, 30px);
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1.5px solid #403f3f;
+            cursor: pointer;
+        }
+
+        .controls {
+            margin: 10px;
+        }
+
+        .controls button {
+            margin: 5px;
+            width: 150px;
+            padding: 10px;
+            font-size: 15px;
+            cursor: pointer;
+            border: none;
+            background-color: #4682b4;
+            color: white;
+            border-radius: 50px;
+        }
+
+        .controls button:hover {
+            background-color: #5a9bd4;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="color_palette">
+        <div class="color" style="background-color: red;" data-color="red"></div>
+        <div class="color" style="background-color: green;" data-color="green"></div>
+        <div class="color" style="background-color: blue;" data-color="blue"></div>
+        <div class="color" style="background-color: yellow;" data-color="yellow"></div>
+        <div class="color" style="background-color: rgb(0, 0, 0);" data-color="black"></div>
+
+    </div>
+    <div class="controls">
+        <button id="reset">Reset</button>
+        <button id="enable_eraser">Enable Eraser</button>
+        <button id="ok">OK</button>
+    </div>
+    <div class="grid"></div>
+
+    <script>
+        const grid = document.querySelector('.grid');
+        const colors = document.querySelectorAll('.color');
+        let selectedColor = 'red';
+        let eraserEnabled = false;
+
+        for (let i = 0; i < 256; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.addEventListener('click', () => {
+                if (eraserEnabled) {
+                    cell.style.backgroundColor = 'white';
+                } else {
+                    cell.style.backgroundColor = selectedColor;
+                }
+            });
+            grid.appendChild(cell);
+        }
+
+        colors.forEach(color => {
+            color.addEventListener('click', () => {
+                selectedColor = color.dataset.color;
+                eraserEnabled = false;
+            });
+        });
+
+        document.getElementById('reset').addEventListener('click', () => {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.style.backgroundColor = 'white';
+            });
+        });
+
+        document.getElementById('enable_eraser').addEventListener('click', () => {
+            eraserEnabled = !eraserEnabled;
+        });
+
+        document.getElementById('ok').addEventListener('click', () => {
+            const gridData = [];
+            document.querySelectorAll('.cell').forEach(cell => {
+                gridData.push(cell.style.backgroundColor || 'white');
+            });
+            sendGridDataToESP32(gridData);
+        });
+
+        function sendGridDataToESP32(gridData) {
+            fetch('/setMatrix', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(gridData),
+            })
+                .then(response => response.json())
+                .then(data => console.log(data))
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+
+</html>
